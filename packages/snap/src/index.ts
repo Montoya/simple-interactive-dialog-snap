@@ -1,5 +1,5 @@
-import type { OnRpcRequestHandler } from '@metamask/snaps-sdk';
-import { panel, text } from '@metamask/snaps-sdk';
+import type { OnRpcRequestHandler, OnUserInputHandler } from '@metamask/snaps-sdk';
+import { panel, text, button } from '@metamask/snaps-sdk';
 
 /**
  * Handle incoming JSON-RPC requests, sent through `wallet_invokeSnap`.
@@ -17,20 +17,43 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
 }) => {
   switch (request.method) {
     case 'hello':
+      const interfaceId = await snap.request({
+        method: "snap_createInterface",
+        params: {
+          ui: panel([
+            button({ 
+              value: 'One', 
+              buttonType: 'button',
+              name: 'btn-one'
+            }),
+            button({
+              value: 'Two',
+              buttonType: 'button',
+              name: 'btn-two'
+            })
+          ]),
+        },
+      });
       return snap.request({
         method: 'snap_dialog',
         params: {
-          type: 'confirmation',
-          content: panel([
-            text(`Hello, **${origin}**!`),
-            text('This custom confirmation is just for display purposes.'),
-            text(
-              'But you can edit the snap source code to make it do something, if you want to!',
-            ),
-          ]),
+          type: 'alert',
+          id: interfaceId
         },
       });
     default:
       throw new Error('Method not found.');
   }
 };
+
+export const OnUserInput: OnUserInputHandler = async ({ id, event }) => { 
+  await snap.request({
+    method: "snap_updateInterface", 
+    params: { 
+      id,
+      ui: panel([
+        text(`${event.name}`)
+      ]),
+    },
+  }); 
+}
